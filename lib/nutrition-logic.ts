@@ -45,3 +45,25 @@ export function calculateDailyPlan(
     deficitOrSurplus: adjustment,
   };
 }
+
+/**
+ * Calculates the Basal Metabolic Rate (BMR) using the Mifflin-St Jeor Equation.
+ */
+export function calculateBMR(stats: UserStats): number {
+  const { weight, height, age, gender } = stats;
+
+  if (gender === "male") {
+    return 10 * weight + 6.25 * height - 5 * age + 5;
+  }
+
+  return 10 * weight + 6.25 * height - 5 * age - 161;
+}
+
+/**
+ * Calculates the Total Daily Energy Expenditure (TDEE).
+ * BMR * Activity Level multiplier.
+ */
+export function calculateTDEE(stats: UserStats): number {
+  const bmr = calculateBMR(stats);
+  return Math.round(bmr * stats.activityLevel);
+}
