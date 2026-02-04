@@ -1,8 +1,20 @@
+import CalculatorForm from "@/components/CalculatorForm";
+
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <h1 className="text-4xl font-bold">Nutri Craft</h1>
-      <p className="mt-4 text-gray-600">Initialisation du projet réussie.</p>
+    <main className="min-h-screen bg-gray-50 py-12 px-4">
+      <div className="max-w-4xl mx-auto space-y-8">
+        <header className="text-center">
+          <h1 className="text-4xl font-extrabold text-green-600">
+            Nutri Craft
+          </h1>
+          <p className="text-gray-600">Planifie ta nutrition intelligemment</p>
+        </header>
+
+        <section className="bg-white p-6 rounded-2xl shadow-xl">
+          <CalculatorForm />;
+        </section>
+      </div>
     </main>
   );
 }
