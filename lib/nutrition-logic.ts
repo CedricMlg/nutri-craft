@@ -14,7 +14,7 @@ import { UserStats, CalorieTargets } from "@/types/nutrition";
 export function calculateDailyPlan(
   userTdee: number,
   stats: UserStats,
-  isTrainingDay: boolean
+  isTrainingDay: boolean,
 ): CalorieTargets {
   let adjustment = 0;
 
@@ -66,4 +66,25 @@ export function calculateBMR(stats: UserStats): number {
 export function calculateTDEE(stats: UserStats): number {
   const bmr = calculateBMR(stats);
   return Math.round(bmr * stats.activityLevel);
+}
+
+export function calculateMacros(user: UserStats, plan: CalorieTargets) {
+  const proteinMultiplier = user.goal === "weight-loss" ? 2.2 : 2.6;
+  let proteinGrams = user.weight * proteinMultiplier;
+
+  if (proteinGrams > 220) proteinGrams = 220;
+
+  const fatKcal = plan.dailyTarget * 0.25;
+  const fatGrams = fatKcal / 9;
+
+  const currentProtKcal = proteinGrams * 4;
+  const currentFatKcal = fatGrams * 9;
+  const carbGrams = (plan.dailyTarget - currentFatKcal - currentProtKcal) / 4;
+
+  return {
+    protein: Math.round(proteinGrams),
+    fat: Math.round(fatGrams),
+    carbs: Math.round(carbGrams),
+    calories: plan.dailyTarget,
+  };
 }
