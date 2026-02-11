@@ -69,7 +69,7 @@ export function calculateTDEE(stats: UserStats): number {
 }
 
 export function calculateMacros(user: UserStats, plan: CalorieTargets) {
-  const proteinMultiplier = user.goal === "weight-loss" ? 2.5 : 2.0;
+  const proteinMultiplier = user.goal === "weight-loss" ? 2.2 : 2.6;
   let proteinGrams = user.weight * proteinMultiplier;
 
   if (proteinGrams > 220) proteinGrams = 220;

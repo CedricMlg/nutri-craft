@@ -3,7 +3,11 @@
 
 import { useState } from "react";
 import { UserStats, CalorieTargets } from "@/types/nutrition";
-import { calculateTDEE, calculateDailyPlan } from "@/lib/nutrition-logic";
+import {
+  calculateTDEE,
+  calculateDailyPlan,
+  calculateMacros,
+} from "@/lib/nutrition-logic";
 
 export default function CalculatorForm() {
   const [formData, setFormData] = useState<UserStats>({
@@ -252,22 +256,43 @@ export default function CalculatorForm() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {DAYS_OF_WEEK.map((day) => {
                   const isTraining = trainingDays.includes(day);
+                  const activePlan = isTraining
+                    ? dailyTrainPlan
+                    : dailyRestPlan;
+                  const macros = calculateMacros(formData, activePlan);
+
                   return (
                     <div
                       key={day}
-                      className={`p-3 rounded-lg flex justify-between items-center ${
+                      className={`p-4 rounded-xl border flex flex-col gap-3 ${
                         isTraining
                           ? "bg-green-50 border-green-200"
                           : "bg-gray-50 border-gray-200"
-                      } border`}
+                      }`}
                     >
-                      <span className="font-medium">{day}</span>
-                      <span className="font-bold">
-                        {isTraining
-                          ? dailyTrainPlan.dailyTarget
-                          : dailyRestPlan.dailyTarget}
-                        kcal
-                      </span>
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-lg">{day}</span>
+                        <span className="text-sm font-semibold bg-white px-2 py-1 rounded shadow-sm">
+                          {activePlan.dailyTarget} kcal
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                        <div className="flex flex-col p-1 bg-red-100 text-red-700 rounded">
+                          <span className="font-bold">{macros.protein}g</span>
+                          <span>Prot</span>
+                        </div>
+
+                        <div className="flex flex-col p-1 bg-yellow-100 text-yellow-700 rounded">
+                          <span className="font-bold">{macros.carbs}g</span>
+                          <span>Gluc</span>
+                        </div>
+
+                        <div className="flex flex-col p-1 bg-blue-100 text-blue-700 rounded">
+                          <span className="font-bold">{macros.fat}g</span>
+                          <span>Lip</span>
+                        </div>
+                      </div>
                     </div>
                   );
                 })}
