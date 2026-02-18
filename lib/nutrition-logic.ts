@@ -88,3 +88,13 @@ export function calculateMacros(user: UserStats, plan: CalorieTargets) {
     calories: plan.dailyTarget,
   };
 }
+
+/**
+ * A lighter version of macro calculation that only needs the calorie target.
+ */
+export function calculateMacrosFromCalories(
+  calories: number,
+  stats: UserStats,
+) {
+  return calculateMacros(stats, { dailyTarget: calories } as CalorieTargets);
+}

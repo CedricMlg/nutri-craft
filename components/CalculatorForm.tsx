@@ -7,6 +7,7 @@ import {
   calculateTDEE,
   calculateDailyPlan,
   calculateMacros,
+  calculateMacrosFromCalories,
 } from "@/lib/nutrition-logic";
 
 export default function CalculatorForm() {
@@ -38,6 +39,15 @@ export default function CalculatorForm() {
   );
   const [userTDEE, setUserTDEE] = useState<number | null>(null);
   const [weeklySchedule, setWeeklySchedule] = useState<DailyEntry[]>([]);
+  const [editingDay, setEditingDay] = useState<string | null>(null);
+
+  const updateDay = (dayName: string, updates: Partial<DailyEntry>) => {
+    setWeeklySchedule((prev) =>
+      prev.map((d) =>
+        d.day === dayName ? { ...d, ...updates, isCustom: true } : d,
+      ),
+    );
+  };
 
   const toggleDay = (day: string) => {
     setTrainingDays((prev) =>
@@ -276,45 +286,175 @@ export default function CalculatorForm() {
                 Ton Calendrier Calorique
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {DAYS_OF_WEEK.map((day) => {
-                  const isTraining = trainingDays.includes(day);
-                  const activePlan = isTraining
-                    ? dailyTrainPlan
-                    : dailyRestPlan;
-                  const macros = calculateMacros(formData, activePlan);
+                {weeklySchedule.map((dayEntry) => {
+                  const isEditing = editingDay === dayEntry.day;
 
                   return (
                     <div
-                      key={day}
-                      className={`p-4 rounded-xl border flex flex-col gap-3 ${
-                        isTraining
+                      key={dayEntry.day}
+                      className={`p-4 rounded-xl border flex flex-col gap-3 transition-all ${
+                        dayEntry.isTraining
                           ? "bg-green-50 border-green-200"
                           : "bg-gray-50 border-gray-200"
-                      }`}
+                      } ${dayEntry.isLocked ? "ring-2 ring-blue-400" : ""}`}
                     >
                       <div className="flex justify-between items-center">
-                        <span className="font-bold text-lg">{day}</span>
-                        <span className="text-sm font-semibold bg-white px-2 py-1 rounded shadow-sm">
-                          {activePlan.dailyTarget} kcal
+                        <span className="font-bold text-lg">
+                          {dayEntry.day}
                         </span>
+                        <div className="flex gap-2">
+                          {/* LOCK BUTTON */}
+                          <button
+                            onClick={() =>
+                              updateDay(dayEntry.day, {
+                                isLocked: !dayEntry.isLocked,
+                              })
+                            }
+                            className={`p-1 rounded ${dayEntry.isLocked ? "text-blue-600" : "text-gray-400"}`}
+                          >
+                            {dayEntry.isLocked ? "🔒" : "🔓"}
+                          </button>
+                          {/* EDIT BUTTON */}
+                          <button
+                            onClick={() =>
+                              setEditingDay(isEditing ? null : dayEntry.day)
+                            }
+                            className="text-gray-500 hover:text-blue-600"
+                          >
+                            {isEditing ? "✅" : "✏️"}
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                        <div className="flex flex-col p-1 bg-red-100 text-red-700 rounded">
-                          <span className="font-bold">{macros.protein}g</span>
-                          <span>Prot</span>
-                        </div>
+                      {isEditing ? (
+                        <div className="grid grid-cols-2 gap-2 animate-in fade-in duration-200">
+                          <div className="text-right">
+                            <label className="text-md font-bold text-green-700 uppercase">
+                              kcal
+                            </label>
+                            <input
+                              type="number"
+                              className="border rounded p-1 text-md font-bold text-green-700"
+                              value={dayEntry.calories}
+                              onChange={(e) => {
+                                const newCalories = Number(e.target.value);
+                                const newMacros = calculateMacrosFromCalories(
+                                  newCalories,
+                                  formData,
+                                );
 
-                        <div className="flex flex-col p-1 bg-yellow-100 text-yellow-700 rounded">
-                          <span className="font-bold">{macros.carbs}g</span>
-                          <span>Gluc</span>
-                        </div>
+                                updateDay(dayEntry.day, {
+                                  calories: newCalories,
+                                  protein: newMacros.protein,
+                                  carbs: newMacros.carbs,
+                                  fat: newMacros.fat,
+                                });
+                              }}
+                            />
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="flex flex-col p-1 bg-red-100 text-red-700 rounded">
+                              <label className="bg-red-100 text-red-700 uppercase">
+                                Prot
+                              </label>
+                              <input
+                                type="number"
+                                className="border p-1 bg-red-100 text-red-700 rounded"
+                                value={dayEntry.protein}
+                                onChange={(e) => {
+                                  const newProt = Number(e.target.value);
 
-                        <div className="flex flex-col p-1 bg-blue-100 text-blue-700 rounded">
-                          <span className="font-bold">{macros.fat}g</span>
-                          <span>Lip</span>
+                                  const newTotalCalories =
+                                    newProt * 4 +
+                                    dayEntry.carbs * 4 +
+                                    dayEntry.fat * 9;
+
+                                  updateDay(dayEntry.day, {
+                                    protein: newProt,
+                                    calories: Math.round(newTotalCalories),
+                                  });
+                                }}
+                              />
+                            </div>
+
+                            <div className="flex flex-col p-1 bg-yellow-100 text-yellow-700 rounded">
+                              <label className="bg-yellow-100 text-yellow-700 uppercase">
+                                Gluc
+                              </label>
+                              <input
+                                type="number"
+                                className="border p-1 bg-yellow-100 text-yellow-700 rounded"
+                                value={dayEntry.carbs}
+                                onChange={(e) => {
+                                  const newCarbs = Number(e.target.value);
+
+                                  const newTotalCalories =
+                                    dayEntry.protein * 4 +
+                                    newCarbs * 4 +
+                                    dayEntry.fat * 9;
+
+                                  updateDay(dayEntry.day, {
+                                    carbs: newCarbs,
+                                    calories: Math.round(newTotalCalories),
+                                  });
+                                }}
+                              />
+                            </div>
+
+                            <div className="flex flex-col p-1 bg-blue-100 text-blue-700 rounded">
+                              <label className="bg-blue-100 text-blue-700 uppercase">
+                                Lip
+                              </label>
+                              <input
+                                type="number"
+                                className="border p-1 bg-blue-100 text-blue-700 rounded"
+                                value={dayEntry.fat}
+                                onChange={(e) => {
+                                  const newFat = Number(e.target.value);
+
+                                  const newTotalCalories =
+                                    dayEntry.protein * 4 +
+                                    dayEntry.carbs * 4 +
+                                    newFat * 9;
+
+                                  updateDay(dayEntry.day, {
+                                    fat: newFat,
+                                    calories: Math.round(newTotalCalories),
+                                  });
+                                }}
+                              />
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <>
+                          <div className="text-right">
+                            <span className="text-md font-bold text-green-700">
+                              {dayEntry.calories} kcal
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="flex flex-col p-1 bg-red-100 text-red-700 rounded">
+                              <span className="font-bold">
+                                {dayEntry.protein}g
+                              </span>
+                              <span>Prot</span>
+                            </div>
+
+                            <div className="flex flex-col p-1 bg-yellow-100 text-yellow-700 rounded">
+                              <span className="font-bold">
+                                {dayEntry.carbs}g
+                              </span>
+                              <span>Gluc</span>
+                            </div>
+
+                            <div className="flex flex-col p-1 bg-blue-100 text-blue-700 rounded">
+                              <span className="font-bold">{dayEntry.fat}g</span>
+                              <span>Lip</span>
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   );
                 })}
