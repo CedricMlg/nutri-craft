@@ -27,3 +27,14 @@ export interface CalorieTargets {
   dailyTarget: number; // Final target after adjustments
   deficitOrSurplus: number;
 }
+
+export interface DailyEntry {
+  day: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  isLocked: boolean;
+  isTraining: boolean;
+  isCustom: boolean; // To know if the user manually touched it
+}

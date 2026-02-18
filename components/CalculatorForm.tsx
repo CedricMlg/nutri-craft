@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { UserStats, CalorieTargets } from "@/types/nutrition";
+import { UserStats, CalorieTargets, DailyEntry } from "@/types/nutrition";
 import {
   calculateTDEE,
   calculateDailyPlan,
@@ -37,6 +37,7 @@ export default function CalculatorForm() {
     null,
   );
   const [userTDEE, setUserTDEE] = useState<number | null>(null);
+  const [weeklySchedule, setWeeklySchedule] = useState<DailyEntry[]>([]);
 
   const toggleDay = (day: string) => {
     setTrainingDays((prev) =>
@@ -56,20 +57,41 @@ export default function CalculatorForm() {
     }));
   };
 
-  const handleFinalCalculate = () => {
-    if (!userTDEE) return;
-    const restPlan = calculateDailyPlan(userTDEE, formData, false);
-    const trainPlan = calculateDailyPlan(userTDEE, formData, true);
-
-    setDailyRestPlan(restPlan);
-    setDailyTrainPlan(trainPlan);
-  };
-
   const handleCalculate = () => {
     const tdee = calculateTDEE(formData);
 
     setStep(2);
     setUserTDEE(tdee);
+  };
+
+  const handleFinalCalculate = () => {
+    if (!userTDEE) return;
+
+    const restPlan = calculateDailyPlan(userTDEE, formData, false);
+    const trainPlan = calculateDailyPlan(userTDEE, formData, true);
+
+    // Generate the 7 days based on current plans
+    const initialSchedule = DAYS_OF_WEEK.map((day) => {
+      const isTraining = trainingDays.includes(day);
+      const plan = isTraining ? trainPlan : restPlan;
+      const macros = calculateMacros(formData, plan);
+
+      return {
+        day,
+        calories: plan.dailyTarget,
+        protein: macros.protein,
+        carbs: macros.carbs,
+        fat: macros.fat,
+        isLocked: false,
+        isTraining,
+        isCustom: false,
+      };
+    });
+
+    setWeeklySchedule(initialSchedule);
+    // Keep these for reference if needed, but weeklySchedule becomes our main state
+    setDailyRestPlan(restPlan);
+    setDailyTrainPlan(trainPlan);
   };
 
   const handleBack = () => {
