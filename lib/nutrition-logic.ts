@@ -2,7 +2,7 @@
  * src/lib/nutrition-logic.ts
  */
 
-import { UserStats, CalorieTargets } from "@/types/nutrition";
+import { UserStats, CalorieTargets, DailyEntry } from "@/types/nutrition";
 
 /**
  * Calculates the final daily calorie target based on:
@@ -97,4 +97,45 @@ export function calculateMacrosFromCalories(
   stats: UserStats,
 ) {
   return calculateMacros(stats, { dailyTarget: calories } as CalorieTargets);
+}
+
+/**
+ * Rebalances the calories of non-locked days to maintain the weekly budget.
+ * @param currentSchedule - The current 7-day schedule
+ * @param targetWeeklyCalories - The total calories we must reach for the week
+ * @returns A new balanced DailyEntry array
+ */
+export function rebalanceSchedule(
+  currentSchedule: DailyEntry[],
+  targetWeeklyCalories: number,
+  stats: UserStats,
+): DailyEntry[] {
+  const lockedDays = currentSchedule.filter((d) => d.isLocked);
+  const unlockedDays = currentSchedule.filter((d) => !d.isLocked);
+
+  if (unlockedDays.length === 0) return currentSchedule;
+
+  // Calculate how many calories are already "consumed" by locked days
+  const lockedCalories = lockedDays.reduce((sum, d) => sum + d.calories, 0);
+
+  // Calculate what's left for the unlocked days
+  const remainingBudget = targetWeeklyCalories - lockedCalories;
+
+  // Calculate the average calories for the unlocked days
+  // and return a new schedule where unlocked days have this average.
+  const averageForUnlocked = Math.max(0, remainingBudget / unlockedDays.length);
+
+  return currentSchedule.map((day) => {
+    if (day.isLocked) return day;
+
+    const newMacros = calculateMacrosFromCalories(averageForUnlocked, stats);
+    return {
+      ...day,
+      calories: Math.round(averageForUnlocked),
+      protein: newMacros.protein,
+      carbs: newMacros.carbs,
+      fat: newMacros.fat,
+      isCustom: true,
+    };
+  });
 }
