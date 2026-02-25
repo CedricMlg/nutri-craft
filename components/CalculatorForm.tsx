@@ -1,13 +1,14 @@
 // src/components/CalculatorForm.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { UserStats, CalorieTargets, DailyEntry } from "@/types/nutrition";
 import {
   calculateTDEE,
   calculateDailyPlan,
   calculateMacros,
   calculateMacrosFromCalories,
+  rebalanceSchedule,
 } from "@/lib/nutrition-logic";
 
 export default function CalculatorForm() {
@@ -43,9 +44,19 @@ export default function CalculatorForm() {
 
   const updateDay = (dayName: string, updates: Partial<DailyEntry>) => {
     setWeeklySchedule((prev) =>
-      prev.map((d) =>
-        d.day === dayName ? { ...d, ...updates, isCustom: true } : d,
-      ),
+      prev.map((d) => {
+        if (d.day !== dayName) return d;
+
+        const shouldForceLock =
+          updates.isLocked !== undefined ? updates.isLocked : true;
+
+        return {
+          ...d,
+          ...updates,
+          isCustom: true,
+          isLocked: shouldForceLock,
+        };
+      }),
     );
   };
 
@@ -99,7 +110,6 @@ export default function CalculatorForm() {
     });
 
     setWeeklySchedule(initialSchedule);
-    // Keep these for reference if needed, but weeklySchedule becomes our main state
     setDailyRestPlan(restPlan);
     setDailyTrainPlan(trainPlan);
   };
@@ -110,6 +120,14 @@ export default function CalculatorForm() {
     setDailyRestPlan(null);
     setDailyTrainPlan(null);
   };
+
+  const totalWeeklyTarget = useMemo(() => {
+    if (!dailyTrainPlan || !dailyRestPlan) return 0;
+    return (
+      dailyTrainPlan.dailyTarget * trainingDays.length +
+      dailyRestPlan.dailyTarget * (7 - trainingDays.length)
+    );
+  }, [dailyTrainPlan, dailyRestPlan, trainingDays]);
 
   return (
     <div className="p-4 border rounded shadow">
@@ -316,10 +334,22 @@ export default function CalculatorForm() {
                           </button>
                           {/* EDIT BUTTON */}
                           <button
-                            onClick={() =>
-                              setEditingDay(isEditing ? null : dayEntry.day)
-                            }
-                            className="text-gray-500 hover:text-blue-600"
+                            onClick={() => {
+                              if (isEditing) {
+                                // Use the memoized value
+                                const balancedSchedule = rebalanceSchedule(
+                                  weeklySchedule,
+                                  totalWeeklyTarget, // Using the variable from useMemo
+                                  formData,
+                                );
+
+                                setWeeklySchedule(balancedSchedule);
+                                setEditingDay(null);
+                              } else {
+                                setEditingDay(dayEntry.day);
+                              }
+                            }}
+                            className="text-gray-500 hover:text-blue-600 transition-colors"
                           >
                             {isEditing ? "✅" : "✏️"}
                           </button>
